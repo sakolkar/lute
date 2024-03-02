@@ -32,7 +32,8 @@ dependencies = [
   "toml>=0.10.2,<1",
   "waitress>=2.1.2,<3",
   "openepub>=0.0.6,<1",
-  "pypdf>=3.17.4"
+  "pypdf>=3.17.4",
+  "flask-rebar>=3.2.0,<4",
 ]
 
 [project.scripts]
