@@ -19,6 +19,7 @@ from flask import (
     send_from_directory,
     jsonify,
 )
+from flask_smorest import Api
 from sqlalchemy.event import listens_for
 from sqlalchemy.pool import Pool
 
@@ -51,6 +52,16 @@ from lute.settings.routes import bp as settings_bp
 from lute.themes.routes import bp as themes_bp
 from lute.stats.routes import bp as stats_bp
 from lute.cli.commands import bp as cli_bp
+
+from lute.backup.api import v1 as backup_api_v1
+from lute.book.api import v1 as book_api_v1
+from lute.booktag.api import v1 as booktag_api_v1
+from lute.language.api import v1 as language_api_v1
+from lute.settings.api import v1 as setting_api_v1
+from lute.stats.api import v1 as stats_api_v1
+from lute.term.api import v1 as term_api_v1
+from lute.termtag.api import v1 as termtag_api_v1
+from lute.themes.api import v1 as theme_api_v1
 
 
 def _setup_app_dirs(app_config):
@@ -229,9 +240,9 @@ def _add_base_routes(app, app_config):
         Some files should never be cached.
         """
         response = make_response(send_from_directory("static/js", filename))
-        response.headers[
-            "Cache-Control"
-        ] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
         return response
 
     @app.errorhandler(500)
@@ -284,6 +295,12 @@ def _create_app(app_config, extra_config):
         # ref https://flask-sqlalchemy.palletsprojects.com/en/2.x/config/
         # Don't track mods.
         "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+        "V1_OPENAPI_URL_PREFIX": "/api/v1/",
+        "V1_OPENAPI_SWAGGER_UI_PATH": "/docs",
+        "V1_OPENAPI_SWAGGER_UI_URL": "https://cdn.jsdelivr.net/npm/swagger-ui-dist/",
+        "V2_OPENAPI_URL_PREFIX": "/api/v2/",
+        "V2_OPENAPI_SWAGGER_UI_PATH": "/docs",
+        "V2_OPENAPI_SWAGGER_UI_URL": "https://cdn.jsdelivr.net/npm/swagger-ui-dist/",
     }
 
     final_config = {**config, **extra_config}
@@ -305,6 +322,16 @@ def _create_app(app_config, extra_config):
         clean_data()
     app.db = db
 
+    api_v1 = Api(
+        app,
+        spec_kwargs={
+            "title": "V1 API",
+            "version": lute.__version__,
+            "openapi_version": "3.0.2",
+        },
+        config_prefix="V1_",
+    )
+
     _add_base_routes(app, app_config)
     app.register_blueprint(language_bp)
     app.register_blueprint(book_bp)
@@ -323,6 +350,16 @@ def _create_app(app_config, extra_config):
     app.register_blueprint(cli_bp)
     if app_config.is_test_db:
         app.register_blueprint(dev_api_bp)
+
+    api_v1.register_blueprint(backup_api_v1)
+    api_v1.register_blueprint(book_api_v1)
+    api_v1.register_blueprint(booktag_api_v1)
+    api_v1.register_blueprint(language_api_v1)
+    api_v1.register_blueprint(setting_api_v1)
+    api_v1.register_blueprint(stats_api_v1)
+    api_v1.register_blueprint(term_api_v1)
+    api_v1.register_blueprint(termtag_api_v1)
+    api_v1.register_blueprint(theme_api_v1)
 
     return app
 
